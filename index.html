@@ -1,0 +1,893 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Крестики-нолики с ИИ</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            position: relative;
+            color: #fff;
+        }
+
+        #background-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        .game-container {
+            position: relative;
+            z-index: 10;
+            width: 95%;
+            max-width: 700px;
+            height: 90vh;
+            max-height: 800px;
+            display: flex;
+            flex-direction: column;
+            background: rgba(25, 25, 45, 0.7);
+            border-radius: 20px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5);
+            overflow: hidden;
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+        }
+
+        .header {
+            text-align: center;
+            padding: 15px 0;
+            background: rgba(15, 15, 35, 0.85);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            background: linear-gradient(90deg, #4CAF50, #2196F3);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            text-shadow: 0 0 15px rgba(0, 150, 255, 0.3);
+            margin-bottom: 5px;
+        }
+
+        .header p {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 1.1rem;
+        }
+
+        .hud-panel {
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(15, 15, 35, 0.8);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .player-turn {
+            color: #fff;
+            font-size: 1.4rem;
+            font-weight: 600;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .player-turn .x-turn {
+            color: #4CAF50;
+        }
+
+        .player-turn .o-turn {
+            color: #f44336;
+        }
+
+        .player-icon {
+            font-size: 1.8rem;
+            transition: transform 0.3s ease;
+        }
+
+        .controls {
+            display: flex;
+            gap: 12px;
+        }
+
+        .game-button {
+            background: linear-gradient(135deg, #4CAF50, #2E7D32);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            font-size: 1rem;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+            font-weight: 600;
+            min-width: 120px;
+        }
+
+        .game-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.4);
+        }
+
+        .game-button:active {
+            transform: translateY(1px);
+        }
+
+        .game-button.secondary {
+            background: linear-gradient(135deg, #2196F3, #0d47a1);
+        }
+
+        .ai-controls {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            padding: 15px 0;
+            background: rgba(20, 20, 40, 0.7);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .ai-button {
+            background: rgba(50, 50, 80, 0.7);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-size: 1rem;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+            border: 2px solid transparent;
+        }
+
+        .ai-button:hover {
+            background: rgba(70, 70, 110, 0.9);
+        }
+
+        .ai-button.active {
+            background: linear-gradient(135deg, #FF9800, #F57C00);
+            border-color: rgba(255, 255, 255, 0.3);
+            box-shadow: 0 0 15px rgba(255, 152, 0, 0.5);
+        }
+
+        .game-board {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        #game-canvas {
+            width: 100%;
+            height: 100%;
+            max-width: 500px;
+            max-height: 500px;
+            border-radius: 10px;
+            background: rgba(20, 20, 40, 0.6);
+            box-shadow: inset 0 0 25px rgba(0, 0, 0, 0.6);
+            cursor: pointer;
+        }
+
+        .result-modal {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 90;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.5s ease;
+        }
+
+        .result-modal.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .modal-content {
+            background: rgba(30, 30, 50, 0.95);
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+            max-width: 450px;
+            width: 90%;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            transform: translateY(20px);
+            transition: transform 0.5s ease;
+        }
+
+        .result-modal.active .modal-content {
+            transform: translateY(0);
+        }
+
+        .result-text {
+            color: white;
+            font-size: 2.5rem;
+            margin-bottom: 30px;
+            font-weight: 700;
+            text-shadow: 0 0 15px rgba(255, 255, 255, 0.7);
+        }
+
+        .result-text.win-x {
+            color: #4CAF50;
+            text-shadow: 0 0 20px rgba(76, 175, 80, 0.8);
+        }
+
+        .result-text.win-o {
+            color: #f44336;
+            text-shadow: 0 0 20px rgba(244, 67, 54, 0.8);
+        }
+
+        .result-text.draw {
+            color: #FF9800;
+            text-shadow: 0 0 20px rgba(255, 152, 0, 0.8);
+        }
+
+        .close-button {
+            background: linear-gradient(135deg, #2196F3, #0d47a1);
+            color: white;
+            border: none;
+            padding: 12px 35px;
+            font-size: 1.2rem;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .close-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+            background: linear-gradient(135deg, #42A5F5, #1565C0);
+        }
+
+        .instructions {
+            color: rgba(255, 255, 255, 0.7);
+            text-align: center;
+            font-size: 1rem;
+            padding: 15px;
+            background: rgba(15, 15, 35, 0.8);
+        }
+
+        @media (max-width: 700px) {
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .player-turn {
+                font-size: 1.1rem;
+            }
+            
+            .game-button {
+                padding: 10px 15px;
+                font-size: 0.9rem;
+                min-width: 100px;
+            }
+            
+            .ai-button {
+                padding: 8px 15px;
+                font-size: 0.9rem;
+            }
+            
+            .result-text {
+                font-size: 2rem;
+            }
+        }
+
+        @media (max-width: 500px) {
+            .controls {
+                flex-direction: column;
+                gap: 8px;
+            }
+            
+            .ai-controls {
+                flex-wrap: wrap;
+            }
+            
+            .header h1 {
+                font-size: 1.7rem;
+            }
+            
+            .result-text {
+                font-size: 1.8rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Canvas для фона с частицами -->
+    <canvas id="background-canvas"></canvas>
+    
+    <div class="game-container">
+        <div class="header">
+            <h1><i class="fas fa-gamepad"></i> Крестики-Нолики</h1>
+            <p>Играйте против ИИ с разными уровнями сложности</p>
+        </div>
+        
+        <div class="hud-panel">
+            <div class="player-turn">
+                <span>Ход:</span>
+                <span class="x-turn">
+                    <i class="fas fa-times player-icon"></i> Игрок X
+                </span>
+            </div>
+            <div class="controls">
+                <button class="game-button secondary" id="mode-button">
+                    <i class="fas fa-robot"></i> Режим: Игрок
+                </button>
+                <button class="game-button" id="reset-button">
+                    <i class="fas fa-redo"></i> Новая игра
+                </button>
+            </div>
+        </div>
+        
+        <div class="ai-controls">
+            <button class="ai-button active" data-level="easy">Легкий</button>
+            <button class="ai-button" data-level="medium">Средний</button>
+            <button class="ai-button" data-level="hard">Сложный</button>
+        </div>
+        
+        <div class="game-board">
+            <!-- Canvas для игрового поля -->
+            <canvas id="game-canvas"></canvas>
+        </div>
+        
+        <div class="instructions">
+            Выберите уровень сложности ИИ и начните игру. Кликните на клетку, чтобы сделать ход.
+        </div>
+    </div>
+    
+    <!-- Модальное окно с результатом -->
+    <div class="result-modal">
+        <div class="modal-content">
+            <div class="result-text">Победа X!</div>
+            <button class="close-button">Играть снова</button>
+        </div>
+    </div>
+    
+    <script>
+        // Частицы для фона
+        class Particle {
+            constructor(canvas) {
+                this.canvas = canvas;
+                this.ctx = canvas.getContext('2d');
+                this.reset();
+            }
+            
+            reset() {
+                this.x = Math.random() * this.canvas.width;
+                this.y = Math.random() * this.canvas.height;
+                this.size = Math.random() * 3 + 1;
+                this.speedX = (Math.random() - 0.5) * 1.5;
+                this.speedY = (Math.random() - 0.5) * 1.5;
+                this.color = `rgba(${Math.random() * 100 + 155}, ${Math.random() * 100 + 155}, 255, ${Math.random() * 0.5 + 0.1})`;
+                this.oscillation = Math.random() * Math.PI * 2;
+                this.speedOsc = Math.random() * 0.05 + 0.01;
+            }
+            
+            update() {
+                this.x += this.speedX + Math.cos(this.oscillation) * 0.5;
+                this.y += this.speedY + Math.sin(this.oscillation) * 0.5;
+                this.oscillation += this.speedOsc;
+                
+                if (this.x < 0 || this.x > this.canvas.width || 
+                    this.y < 0 || this.y > this.canvas.height) {
+                    this.reset();
+                }
+            }
+            
+            draw() {
+                this.ctx.fillStyle = this.color;
+                this.ctx.beginPath();
+                this.ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                this.ctx.fill();
+            }
+        }
+        
+        // Система частиц для фона
+        class ParticleSystem {
+            constructor(canvasId, particleCount = 40) {
+                this.canvas = document.getElementById(canvasId);
+                this.ctx = this.canvas.getContext('2d');
+                this.particles = [];
+                this.particleCount = particleCount;
+                
+                this.initCanvas();
+                this.createParticles();
+                this.animate();
+                
+                window.addEventListener('resize', () => this.initCanvas());
+            }
+            
+            initCanvas() {
+                this.canvas.width = window.innerWidth;
+                this.canvas.height = window.innerHeight;
+            }
+            
+            createParticles() {
+                for (let i = 0; i < this.particleCount; i++) {
+                    this.particles.push(new Particle(this.canvas));
+                }
+            }
+            
+            animate() {
+                this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                
+                // Рисуем градиентный фон
+                const gradient = this.ctx.createLinearGradient(0, 0, 0, this.canvas.height);
+                gradient.addColorStop(0, "#1a1a2e");
+                gradient.addColorStop(1, "#16213e");
+                this.ctx.fillStyle = gradient;
+                this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+                
+                // Обновляем и рисуем частицы
+                this.particles.forEach(particle => {
+                    particle.update();
+                    particle.draw();
+                });
+                
+                requestAnimationFrame(() => this.animate());
+            }
+        }
+        
+        // Игровая логика
+        class TicTacToe {
+            constructor(canvasId) {
+                this.canvas = document.getElementById(canvasId);
+                this.ctx = this.canvas.getContext('2d');
+                this.cellSize = 0;
+                this.board = Array(9).fill(null);
+                this.currentPlayer = 'X';
+                this.gameOver = false;
+                this.winner = null;
+                this.aiMode = false; // Режим игры против ИИ
+                this.aiLevel = 'medium'; // Уровень сложности ИИ
+                this.aiPlayer = 'O'; // ИИ всегда играет за O
+                
+                this.init();
+                this.drawBoard();
+                
+                // Обработчики событий
+                this.canvas.addEventListener('click', (e) => this.handleClick(e));
+                document.getElementById('reset-button').addEventListener('click', () => this.resetGame());
+                document.getElementById('mode-button').addEventListener('click', () => this.toggleAIMode());
+                document.querySelector('.close-button').addEventListener('click', () => {
+                    document.querySelector('.result-modal').classList.remove('active');
+                    this.resetGame();
+                });
+                
+                // Обработчики для кнопок уровня ИИ
+                document.querySelectorAll('.ai-button').forEach(button => {
+                    button.addEventListener('click', () => {
+                        document.querySelectorAll('.ai-button').forEach(btn => btn.classList.remove('active'));
+                        button.classList.add('active');
+                        this.aiLevel = button.dataset.level;
+                        this.resetGame();
+                    });
+                });
+            }
+            
+            init() {
+                // Устанавливаем размеры canvas
+                const size = Math.min(this.canvas.parentElement.clientWidth, this.canvas.parentElement.clientHeight) * 0.9;
+                this.canvas.width = size;
+                this.canvas.height = size;
+                this.cellSize = size / 3;
+            }
+            
+            drawBoard() {
+                this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                
+                // Рисуем сетку
+                this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+                this.ctx.lineWidth = 6;
+                this.ctx.lineCap = 'round';
+                
+                // Вертикальные линии
+                for (let i = 1; i < 3; i++) {
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(i * this.cellSize, 10);
+                    this.ctx.lineTo(i * this.cellSize, this.canvas.height - 10);
+                    this.ctx.stroke();
+                }
+                
+                // Горизонтальные линии
+                for (let i = 1; i < 3; i++) {
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(10, i * this.cellSize);
+                    this.ctx.lineTo(this.canvas.width - 10, i * this.cellSize);
+                    this.ctx.stroke();
+                }
+                
+                // Рисуем крестики и нолики
+                for (let i = 0; i < 9; i++) {
+                    const row = Math.floor(i / 3);
+                    const col = i % 3;
+                    
+                    if (this.board[i] === 'X') {
+                        this.drawX(row, col);
+                    } else if (this.board[i] === 'O') {
+                        this.drawO(row, col);
+                    }
+                }
+                
+                // Подсвечиваем выигрышную комбинацию
+                if (this.gameOver && this.winner) {
+                    this.highlightWinningCombination();
+                }
+            }
+            
+            drawX(row, col) {
+                const padding = this.cellSize * 0.2;
+                const x = col * this.cellSize;
+                const y = row * this.cellSize;
+                
+                this.ctx.strokeStyle = '#4CAF50';
+                this.ctx.lineWidth = 12;
+                this.ctx.lineCap = 'round';
+                
+                // Первая диагональ
+                this.ctx.beginPath();
+                this.ctx.moveTo(x + padding, y + padding);
+                this.ctx.lineTo(x + this.cellSize - padding, y + this.cellSize - padding);
+                this.ctx.stroke();
+                
+                // Вторая диагональ
+                this.ctx.beginPath();
+                this.ctx.moveTo(x + this.cellSize - padding, y + padding);
+                this.ctx.lineTo(x + padding, y + this.cellSize - padding);
+                this.ctx.stroke();
+            }
+            
+            drawO(row, col) {
+                const x = col * this.cellSize + this.cellSize / 2;
+                const y = row * this.cellSize + this.cellSize / 2;
+                const radius = this.cellSize * 0.3;
+                
+                this.ctx.strokeStyle = '#f44336';
+                this.ctx.lineWidth = 12;
+                this.ctx.beginPath();
+                this.ctx.arc(x, y, radius, 0, Math.PI * 2);
+                this.ctx.stroke();
+            }
+            
+            highlightWinningCombination() {
+                const winPatterns = [
+                    [0, 1, 2], [3, 4, 5], [6, 7, 8], // строки
+                    [0, 3, 6], [1, 4, 7], [2, 5, 8], // столбцы
+                    [0, 4, 8], [2, 4, 6]             // диагонали
+                ];
+                
+                let winningCombo = null;
+                
+                for (const pattern of winPatterns) {
+                    const [a, b, c] = pattern;
+                    if (this.board[a] && this.board[a] === this.board[b] && this.board[a] === this.board[c]) {
+                        winningCombo = pattern;
+                        break;
+                    }
+                }
+                
+                if (!winningCombo) return;
+                
+                this.ctx.strokeStyle = 'rgba(255, 215, 0, 0.7)';
+                this.ctx.lineWidth = 16;
+                this.ctx.lineCap = 'round';
+                this.ctx.beginPath();
+                
+                for (let i = 0; i < winningCombo.length; i++) {
+                    const index = winningCombo[i];
+                    const row = Math.floor(index / 3);
+                    const col = index % 3;
+                    const x = col * this.cellSize + this.cellSize / 2;
+                    const y = row * this.cellSize + this.cellSize / 2;
+                    
+                    if (i === 0) {
+                        this.ctx.moveTo(x, y);
+                    } else {
+                        this.ctx.lineTo(x, y);
+                    }
+                }
+                
+                this.ctx.stroke();
+            }
+            
+            handleClick(event) {
+                if (this.gameOver || (this.aiMode && this.currentPlayer === this.aiPlayer)) return;
+                
+                const rect = this.canvas.getBoundingClientRect();
+                const x = event.clientX - rect.left;
+                const y = event.clientY - rect.top;
+                
+                // Определяем, в какую клетку был клик
+                const col = Math.floor(x / this.cellSize);
+                const row = Math.floor(y / this.cellSize);
+                const index = row * 3 + col;
+                
+                // Если клетка свободна, делаем ход
+                if (this.board[index] === null) {
+                    this.makeMove(index);
+                    
+                    // Если игра против ИИ и игра не закончена, делаем ход ИИ
+                    if (this.aiMode && !this.gameOver && this.currentPlayer === this.aiPlayer) {
+                        setTimeout(() => this.makeAIMove(), 500);
+                    }
+                }
+            }
+            
+            makeMove(index) {
+                this.board[index] = this.currentPlayer;
+                this.drawBoard();
+                
+                // Проверяем состояние игры
+                this.checkGameState();
+                
+                // Меняем игрока
+                if (!this.gameOver) {
+                    this.currentPlayer = this.currentPlayer === 'X' ? 'O' : 'X';
+                    this.updatePlayerTurn();
+                }
+            }
+            
+            checkGameState() {
+                // Проверяем победу
+                const winPatterns = [
+                    [0, 1, 2], [3, 4, 5], [6, 7, 8], // строки
+                    [0, 3, 6], [1, 4, 7], [2, 5, 8], // столбцы
+                    [0, 4, 8], [2, 4, 6]             // диагонали
+                ];
+                
+                for (const pattern of winPatterns) {
+                    const [a, b, c] = pattern;
+                    if (this.board[a] && this.board[a] === this.board[b] && this.board[a] === this.board[c]) {
+                        this.gameOver = true;
+                        this.winner = this.board[a];
+                        this.showResult(`Победа ${this.winner}!`);
+                        return;
+                    }
+                }
+                
+                // Проверяем ничью
+                if (!this.board.includes(null)) {
+                    this.gameOver = true;
+                    this.winner = null;
+                    this.showResult('Ничья!');
+                }
+            }
+            
+            // Ход ИИ в зависимости от уровня сложности
+            makeAIMove() {
+                if (this.gameOver) return;
+                
+                let moveIndex;
+                
+                switch (this.aiLevel) {
+                    case 'easy':
+                        moveIndex = this.getRandomMove();
+                        break;
+                    case 'medium':
+                        moveIndex = this.getMediumMove();
+                        break;
+                    case 'hard':
+                        moveIndex = this.getBestMove();
+                        break;
+                    default:
+                        moveIndex = this.getRandomMove();
+                }
+                
+                if (moveIndex !== -1) {
+                    this.makeMove(moveIndex);
+                }
+            }
+            
+            // Легкий уровень - случайный ход
+            getRandomMove() {
+                const freeCells = [];
+                for (let i = 0; i < 9; i++) {
+                    if (this.board[i] === null) {
+                        freeCells.push(i);
+                    }
+                }
+                
+                if (freeCells.length > 0) {
+                    return freeCells[Math.floor(Math.random() * freeCells.length)];
+                }
+                
+                return -1;
+            }
+            
+            // Средний уровень - пробует выиграть или блокировать
+            getMediumMove() {
+                // Сначала проверяем, может ли ИИ выиграть
+                for (let i = 0; i < 9; i++) {
+                    if (this.board[i] === null) {
+                        this.board[i] = this.aiPlayer;
+                        if (this.checkWin(this.aiPlayer)) {
+                            this.board[i] = null;
+                            return i;
+                        }
+                        this.board[i] = null;
+                    }
+                }
+                
+                // Проверяем, может ли игрок выиграть, и блокируем
+                for (let i = 0; i < 9; i++) {
+                    if (this.board[i] === null) {
+                        this.board[i] = 'X';
+                        if (this.checkWin('X')) {
+                            this.board[i] = null;
+                            return i;
+                        }
+                        this.board[i] = null;
+                    }
+                }
+                
+                // Иначе случайный ход
+                return this.getRandomMove();
+            }
+            
+            // Проверка победы для указанного игрока
+            checkWin(player) {
+                const winPatterns = [
+                    [0, 1, 2], [3, 4, 5], [6, 7, 8],
+                    [0, 3, 6], [1, 4, 7], [2, 5, 8],
+                    [0, 4, 8], [2, 4, 6]
+                ];
+                
+                for (const pattern of winPatterns) {
+                    const [a, b, c] = pattern;
+                    if (this.board[a] === player && 
+                        this.board[b] === player && 
+                        this.board[c] === player) {
+                        return true;
+                    }
+                }
+                return false;
+            }
+            
+            // Сложный уровень - алгоритм минимакс
+            getBestMove() {
+                let bestScore = -Infinity;
+                let bestMove = -1;
+                
+                for (let i = 0; i < 9; i++) {
+                    if (this.board[i] === null) {
+                        this.board[i] = this.aiPlayer;
+                        let score = this.minimax(this.board, 0, false);
+                        this.board[i] = null;
+                        
+                        if (score > bestScore) {
+                            bestScore = score;
+                            bestMove = i;
+                        }
+                    }
+                }
+                
+                return bestMove;
+            }
+            
+            // Алгоритм минимакс для определения лучшего хода
+            minimax(board, depth, isMaximizing) {
+                // Проверка состояния игры
+                if (this.checkWin(this.aiPlayer)) return 10 - depth;
+                if (this.checkWin('X')) return depth - 10;
+                if (!board.includes(null)) return 0;
+                
+                if (isMaximizing) {
+                    let bestScore = -Infinity;
+                    for (let i = 0; i < 9; i++) {
+                        if (board[i] === null) {
+                            board[i] = this.aiPlayer;
+                            let score = this.minimax(board, depth + 1, false);
+                            board[i] = null;
+                            bestScore = Math.max(score, bestScore);
+                        }
+                    }
+                    return bestScore;
+                } else {
+                    let bestScore = Infinity;
+                    for (let i = 0; i < 9; i++) {
+                        if (board[i] === null) {
+                            board[i] = 'X';
+                            let score = this.minimax(board, depth + 1, true);
+                            board[i] = null;
+                            bestScore = Math.min(score, bestScore);
+                        }
+                    }
+                    return bestScore;
+                }
+            }
+            
+            showResult(message) {
+                const resultText = document.querySelector('.result-text');
+                resultText.textContent = message;
+                
+                if (message.includes('X')) {
+                    resultText.className = 'result-text win-x';
+                } else if (message.includes('O')) {
+                    resultText.className = 'result-text win-o';
+                } else {
+                    resultText.className = 'result-text draw';
+                }
+                
+                document.querySelector('.result-modal').classList.add('active');
+            }
+            
+            updatePlayerTurn() {
+                const playerTurn = document.querySelector('.player-turn');
+                if (this.currentPlayer === 'X') {
+                    playerTurn.innerHTML = '<span>Ход:</span> <span class="x-turn"><i class="fas fa-times player-icon"></i> Игрок X</span>';
+                } else {
+                    playerTurn.innerHTML = '<span>Ход:</span> <span class="o-turn"><i class="fas fa-circle player-icon"></i> Игрок O</span>';
+                }
+            }
+            
+            toggleAIMode() {
+                this.aiMode = !this.aiMode;
+                const modeButton = document.getElementById('mode-button');
+                
+                if (this.aiMode) {
+                    modeButton.innerHTML = '<i class="fas fa-robot"></i> Режим: ИИ';
+                    modeButton.classList.add('secondary');
+                } else {
+                    modeButton.innerHTML = '<i class="fas fa-user-friends"></i> Режим: Игрок';
+                    modeButton.classList.remove('secondary');
+                }
+                
+                this.resetGame();
+            }
+            
+            resetGame() {
+                this.board = Array(9).fill(null);
+                this.currentPlayer = 'X';
+                this.gameOver = false;
+                this.winner = null;
+                this.drawBoard();
+                this.updatePlayerTurn();
+                document.querySelector('.result-modal').classList.remove('active');
+            }
+        }
+        
+        // Инициализация игры после загрузки страницы
+        window.addEventListener('load', () => {
+            // Создаем систему частиц для фона
+            new ParticleSystem('background-canvas');
+            
+            // Создаем игру
+            const game = new TicTacToe('game-canvas');
+            
+            // Обработчик изменения размера окна
+            window.addEventListener('resize', () => {
+                game.init();
+                game.drawBoard();
+            });
+        });
+    </script>
+</body>
+</html>
